@@ -20,6 +20,7 @@ struct SidebarView: View {
     @State private var editConnectionName: String = ""
     @State private var editRepoName: String = ""
     @State private var isConnectionExpanded: Bool = false
+    @State private var allowPasswordAuth: Bool = false
     @State private var browserSize: BrowserSize = .medium
     @State private var remoteBranch: String = ""
 
@@ -162,6 +163,18 @@ struct SidebarView: View {
                     TextField("Or enter host…", text: $selectedHost)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(.body, design: .monospaced))
+
+                    Toggle("Allow password authentication for this host", isOn: $allowPasswordAuth)
+                        .font(.caption)
+                        .disabled(selectedHost.isEmpty)
+                        .help("Off by default: RemoteDiff only uses SSH keys and agents, so a malicious host cannot show a password prompt. Turn on only for a trusted host that needs a password or 2FA/OTP. If an ssh ControlMaster for this host is already running, the change applies after it exits. This setting is saved immediately.")
+                        .onAppear { allowPasswordAuth = SSHService.passwordAuthHosts.contains(selectedHost) }
+                        .onChange(of: selectedHost) { allowPasswordAuth = SSHService.passwordAuthHosts.contains($0) }
+                        .onChange(of: allowPasswordAuth) {
+                            if $0 != SSHService.passwordAuthHosts.contains(selectedHost) {
+                                SSHService.setPasswordAuth(allowed: $0, forHost: selectedHost)
+                            }
+                        }
 
                     Divider()
 

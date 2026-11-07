@@ -68,4 +68,48 @@ final class SSHConfigTests: XCTestCase {
         XCTAssertFalse(expanded.hasPrefix("~"))
         XCTAssertTrue(expanded.hasSuffix("/Documents/key"))
     }
+
+    // MARK: - Auth options
+
+    func testAuthOptionArgsDisablePasswordForUnlistedHost() {
+        XCTAssertEqual(
+            SSHService.authOptionArgs(host: "a", allowedHosts: []),
+            ["-o", "KbdInteractiveAuthentication=no", "-o", "PasswordAuthentication=no"]
+        )
+    }
+
+    func testAuthOptionArgsEmptyForAllowedHost() {
+        XCTAssertTrue(SSHService.authOptionArgs(host: "a", allowedHosts: ["a"]).isEmpty)
+    }
+
+    func testSSHArgumentsPutAuthOptionsFirst() {
+        XCTAssertEqual(
+            SSHService.sshArguments(host: "h", extraArgs: ["-o", "ControlPath=/x"], allowedHosts: []),
+            ["-o", "KbdInteractiveAuthentication=no", "-o", "PasswordAuthentication=no",
+             "-o", "ControlPath=/x", "--", "h", "bash"]
+        )
+    }
+
+    func testAuthFailureHintNilForPublickeyOnly() {
+        let stderr = "sam@h: Permission denied (publickey)."
+        XCTAssertNil(SSHService.authFailureHint(stderr: stderr, exitCode: 255, host: "h", allowedHosts: []))
+    }
+
+    func testAuthFailureHintWhenPasswordOrKeyboardInteractiveOffered() {
+        let pw = "sam@h: Permission denied (publickey,password)."
+        let kbd = "sam@h: Permission denied (publickey,keyboard-interactive)."
+        XCTAssertNotNil(SSHService.authFailureHint(stderr: pw, exitCode: 255, host: "h", allowedHosts: []))
+        XCTAssertNotNil(SSHService.authFailureHint(stderr: kbd, exitCode: 255, host: "h", allowedHosts: []))
+    }
+
+    func testAuthFailureHintNilForOtherExitCode() {
+        let stderr = "sam@h: Permission denied (publickey,password)."
+        XCTAssertNil(SSHService.authFailureHint(stderr: stderr, exitCode: 1, host: "h", allowedHosts: []))
+    }
+
+    func testAuthFailureHintNilWhenHostAllowedOrUnrelated() {
+        let denied = "sam@h: Permission denied (publickey,password)."
+        XCTAssertNil(SSHService.authFailureHint(stderr: denied, exitCode: 255, host: "h", allowedHosts: ["h"]))
+        XCTAssertNil(SSHService.authFailureHint(stderr: "ssh: connect to host h: Connection refused", exitCode: 255, host: "h", allowedHosts: []))
+    }
 }
