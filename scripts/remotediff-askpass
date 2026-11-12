@@ -17,7 +17,7 @@ case "${SSH_ASKPASS_PROMPT:-}" in
         RESULT=$(/usr/bin/osascript - "$PROMPT" 2>/dev/null <<'EOF'
 on run argv
     tell me to activate
-    display dialog (item 1 of argv) with title "RemoteDiff — SSH Authentication" buttons {"No", "Yes"} default button "No" cancel button "No" with icon caution
+    display dialog (item 1 of argv) with title "RemoteDiff — SSH Authentication" buttons {"No", "Yes"} cancel button "No" with icon caution
     return "yes"
 end run
 EOF
