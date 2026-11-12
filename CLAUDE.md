@@ -133,6 +133,6 @@ Password and keyboard-interactive (incl. 2FA/OTP) auth is **off by default** and
 - `SSH_ASKPASS_REQUIRE=prefer` → tells SSH to prefer askpass even without a TTY
 - `DISPLAY=:0` → required for SSH to trigger askpass
 
-The askpass helper passes the prompt to `osascript` as an argv item (never interpolated into the script source), so a server-controlled prompt can't inject AppleScript. It honours `SSH_ASKPASS_PROMPT`: `confirm` shows a No/Yes dialog (default button is No; prints `yes`; No exits 1), `none` shows an OK-only notification (prints nothing), anything else shows the hidden-answer text field. Cancel or an osascript failure exits 1 (fail closed).
+The askpass helper passes the prompt to `osascript` as an argv item (never interpolated into the script source), so a server-controlled prompt can't inject AppleScript. It honours `SSH_ASKPASS_PROMPT`: `confirm` shows a No/Yes dialog (no default button, so Return does nothing; Escape is No; prints `yes`; No exits 1), `none` shows an OK-only notification (prints nothing), anything else shows the hidden-answer text field. Cancel or an osascript failure exits 1 (fail closed).
 
 The askpass helper is resolved once via `SSHService.askpassPath` (lazy static). It checks: (1) `Bundle.main.resources/remotediff-askpass` for `.app` installs, (2) `scripts/remotediff-askpass` relative to executable for dev builds.
