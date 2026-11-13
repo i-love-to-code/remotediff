@@ -67,6 +67,7 @@ The entitlements file at `scripts/entitlements.plist` keeps the app **unsandboxe
 - **Synced scrolling**: Dual-pane views (Diff, Side by Side) share a single `ScrollView` so both panes scroll together. `dualPaneScroll()` in `DiffView` encapsulates this pattern.
 - **Change navigation**: `ScrollViewReader` + `scrollTo()` drives ⌘↑/⌘↓ jump-to-change. Anchors are hunk IDs in diff mode, grouped changed line IDs in file modes. `changeAnchors(for:)` computes targets per view mode.
 - **Deep linking**: `RemoteDiffApp` owns `pendingDeepLink` state, passes as `@Binding` to `ContentView`. On `.onOpenURL`, the URL is parsed via `DeepLink.parse(from:)`. `ContentView.handleDeepLink()` finds or creates a matching connection+repo, selects it, and auto-fetches.
+- **Error display**: errors are shown with `ErrorMessageView` (full text, selectable, Copy button, scrolls inside the box above 200 pt) — never a bare red `Text` with `lineLimit`. The one-line `LiveStatusBar` is the exception: it keeps `lineLimit(1)` but adds a tooltip with the full message and a `CopyButton`.
 - **Remote script safety**: anything interpolated into a script for `runSSHBash` goes through `SSHService.shellQuote` / `shellQuotePath`; script builders are static on `SSHService` so they're testable; deep-link values are validated in `DeepLink.parse`.
 - **`DisplayLineBuilder`** is pure logic with no UI dependencies — fully unit tested.
 - Script building centralized in `SSHService.buildDiffScript()` / `buildPollScript()` / `buildBranchScript()` / `buildFileContentScript()`.

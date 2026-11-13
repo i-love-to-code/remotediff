@@ -265,10 +265,8 @@ struct SidebarView: View {
             }
 
             if let error = sshService.lastError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .lineLimit(3)
+                ErrorMessageView(message: error)
+                    .padding(.top, 4)
             }
         }
         .padding()
