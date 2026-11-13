@@ -17,6 +17,7 @@
 		AA000010 /* DiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* DiffView.swift */; };
 		AA000011 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* SidebarView.swift */; };
 		AA000012 /* LiveStatusBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012 /* LiveStatusBar.swift */; };
+		AA000036 /* ErrorMessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000036 /* ErrorMessageView.swift */; };
 		AA000013 /* ConnectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* ConnectionStore.swift */; };
 		AA000016 /* LanguageConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016 /* LanguageConfig.swift */; };
 		AA000017 /* FileContentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017 /* FileContentService.swift */; };
@@ -60,6 +61,7 @@
 		AB000010 /* DiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiffView.swift; sourceTree = "<group>"; };
 		AB000011 /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		AB000012 /* LiveStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStatusBar.swift; sourceTree = "<group>"; };
+		AB000036 /* ErrorMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorMessageView.swift; sourceTree = "<group>"; };
 		AB000013 /* RemoteDiff.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RemoteDiff.entitlements; sourceTree = "<group>"; };
 		AB000014 /* ConnectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStore.swift; sourceTree = "<group>"; };
 		AB000016 /* LanguageConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageConfig.swift; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 				AB000034 /* ConnectorRibbonsView.swift */,
 				AB000011 /* SidebarView.swift */,
 				AB000012 /* LiveStatusBar.swift */,
+				AB000036 /* ErrorMessageView.swift */,
 				AB000027 /* SettingsView.swift */,
 			);
 			path = Views;
@@ -304,6 +307,7 @@
 				AA000034 /* ConnectorRibbonsView.swift in Sources */,
 				AA000011 /* SidebarView.swift in Sources */,
 				AA000012 /* LiveStatusBar.swift in Sources */,
+				AA000036 /* ErrorMessageView.swift in Sources */,
 				AA000023 /* SyntaxHighlighter.swift in Sources */,
 				AA000025 /* SyntaxTheme.swift in Sources */,
 				AA000026 /* ThemeStore.swift in Sources */,
