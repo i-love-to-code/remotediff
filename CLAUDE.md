@@ -6,7 +6,7 @@ Project guidelines for AI assistants working on RemoteDiff.
 
 ```bash
 swift build          # Build the project
-swift test           # Run all tests (206 tests across 8 suites)
+swift test           # Run all tests (217 tests across 8 suites)
 ./scripts/build-app.sh  # Build .app bundle + DMG installer (or .zip fallback)
 ```
 
@@ -24,7 +24,7 @@ Relevant env vars (override the defaults if needed):
 - `RD_SIGN_IDENTITY` — explicit codesign identity (full SHA-1 or `Developer ID Application: …` name).
 - `RD_NOTARY_PROFILE` — keychain profile name for `notarytool` (default `RemoteDiffNotary`).
 
-The entitlements file at `scripts/entitlements.plist` keeps the app **unsandboxed** (required for SSH/`~/.ssh` access) and disables library validation (so SSH can load its askpass helper).
+The entitlements file at `scripts/entitlements.plist` keeps the app **unsandboxed** (required for SSH/`~/.ssh` access). Library validation stays on (no `disable-library-validation`): ssh and the askpass helper are separate child processes, not libraries loaded into the app.
 
 ## Architecture
 
@@ -108,10 +108,10 @@ All dual-pane modes use `dualPaneScroll()` (shared `ScrollView` via `GeometryRea
 
 ## Testing
 
-Tests in `RemoteDiffTests/` (206 total across 8 suites):
+Tests in `RemoteDiffTests/` (217 total across 8 suites):
 - `DiffParserTests` — 19 tests for unified diff parsing including untracked files
 - `DisplayLineBuilderTests` — 61 tests covering: display line building, inline ranges, deletion markers, hunk formatting, aligned side-by-side, `ChangeRegion.compute`, `ConnectorLink.compute` (incl. interleaved del/add collapse), `modifiedLineNumbers`, and `buildFullFileLines` modified-lines precedence
-- `SSHConfigTests` — 12 tests for SSH config parsing, per-host auth option args, ssh argv ordering, and the auth-failure hint
+- `SSHConfigTests` — 23 tests for SSH config parsing, per-host auth option args, ssh and ControlMaster argv ordering (host-key + auth options first), the auth-failure hint, and the host-key-failure hint
 - `SyntaxHighlighterTests` — 39 tests for syntax tokenization (keywords, strings, comments, numbers, block comments, **Python triple-quoted strings with multi-line state**, edge cases)
 - `SyntaxThemeTests` — 22 tests for theme registry, hex color parsing, built-in theme validation, dark/light classification
 - `DeepLinkTests` — 27 tests for URL scheme parsing, user@host format, edge cases, invalid inputs, host/ref/path injection validation
@@ -127,6 +127,7 @@ Password and keyboard-interactive (incl. 2FA/OTP) auth is **off by default** and
 - `SSHService.authOptionArgs(host:allowedHosts:)` → `-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no` unless the host is allowed.
 - `SSHService.sshArguments(host:extraArgs:allowedHosts:)` builds the `runSSHBash()` argv with the auth options **first** (ssh keeps the first value of an option, so `extraArgs` can't re-enable password auth). `ControlMasterWatcher.startMaster()` prepends `authOptionArgs` the same way.
 - `SSHService.authFailureHint(stderr:exitCode:host:allowedHosts:)` appends an "Allow password authentication" hint only when ssh exits 255, the host isn't allowed, and the `Permission denied (...)` method list contains `password` or `keyboard-interactive`.
+- Every ssh process RemoteDiff starts passes `-o StrictHostKeyChecking=yes` **first** via `SSHService.hostKeyOptionArgs` (in `sshArguments` and `ControlMasterWatcher.masterArguments`), so an unknown or changed host key fails instead of prompting through askpass. ProxyJump/ProxyCommand hops run their own ssh without these options, so the askpass helper also refuses host-key questions (see below). `SSHService.hostKeyFailureHint(stderr:exitCode:host:)` explains how to add the key: run `ssh -o StrictHostKeyChecking=ask <host>` once in Terminal (overrides `accept-new`/`yes` in ~/.ssh/config) and verify the fingerprint. Not `ssh-keyscan`: it does not read ~/.ssh/config (aliases, ports) and does not verify anything.
 - Grants are removed when a connection is deleted (`ConnectionStore.deleteConnection` calls `setPasswordAuth(allowed: false, ...)`).
 
 `SSHService.sshEnvironment()` (used by `runSSHBash()` and `ControlMasterWatcher.startMaster()`) enables GUI prompts, including key passphrases in watch mode:
@@ -134,6 +135,6 @@ Password and keyboard-interactive (incl. 2FA/OTP) auth is **off by default** and
 - `SSH_ASKPASS_REQUIRE=prefer` → tells SSH to prefer askpass even without a TTY
 - `DISPLAY=:0` → required for SSH to trigger askpass
 
-The askpass helper passes the prompt to `osascript` as an argv item (never interpolated into the script source), so a server-controlled prompt can't inject AppleScript. It honours `SSH_ASKPASS_PROMPT`: `confirm` shows a No/Yes dialog (no default button, so Return does nothing; Escape is No; prints `yes`; No exits 1), `none` shows an OK-only notification (prints nothing), anything else shows the hidden-answer text field. Cancel or an osascript failure exits 1 (fail closed).
+The askpass helper exits 1 without a dialog for host-key questions (prompt contains `continue connecting` or `Accept updated hostkeys`), which ssh treats as "no". The askpass helper passes the prompt to `osascript` as an argv item (never interpolated into the script source), so a server-controlled prompt can't inject AppleScript. It honours `SSH_ASKPASS_PROMPT`: `confirm` shows a No/Yes dialog (no default button, so Return does nothing; Escape is No; prints `yes`; No exits 1), `none` shows an OK-only notification (prints nothing), anything else shows the hidden-answer text field. Cancel or an osascript failure exits 1 (fail closed).
 
 The askpass helper is resolved once via `SSHService.askpassPath` (lazy static). It checks: (1) `Bundle.main.resources/remotediff-askpass` for `.app` installs, (2) `scripts/remotediff-askpass` relative to executable for dev builds.

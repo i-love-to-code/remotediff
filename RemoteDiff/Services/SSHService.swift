@@ -167,16 +167,21 @@ class SSHService: ObservableObject {
         UserDefaults.standard.set(Array(hosts).sorted(), forKey: passwordAuthHostsKey)
     }
 
+    /// ssh options that refuse unknown or changed host keys, so a first connection can never be
+    /// accepted through an askpass "Are you sure you want to continue connecting?" dialog.
+    static let hostKeyOptionArgs = ["-o", "StrictHostKeyChecking=yes"]
+
     /// ssh options that restrict authentication to keys unless `host` is in `allowedHosts`.
     static func authOptionArgs(host: String, allowedHosts: Set<String>) -> [String] {
         allowedHosts.contains(host) ? [] : ["-o", "KbdInteractiveAuthentication=no", "-o", "PasswordAuthentication=no"]
     }
 
-    /// Full ssh argv for `runSSHBash`. Auth options come first so nothing in
-    /// `extraArgs` can re-enable password auth (ssh keeps the first value of an option).
+    /// Full ssh argv for `runSSHBash`. Host-key and auth options come first so nothing in
+    /// `extraArgs` can override them (ssh keeps the first value of an option). A command-line
+    /// `-o` also beats ~/.ssh/config, which is intended.
     /// `--` ends option parsing so a host string can never be read as an ssh option.
     static func sshArguments(host: String, extraArgs: [String], allowedHosts: Set<String>) -> [String] {
-        authOptionArgs(host: host, allowedHosts: allowedHosts) + extraArgs + ["--", host, "bash"]
+        hostKeyOptionArgs + authOptionArgs(host: host, allowedHosts: allowedHosts) + extraArgs + ["--", host, "bash"]
     }
 
     /// Extra guidance appended to ssh errors when authentication was denied for a host
@@ -189,6 +194,22 @@ class SSHService: ObservableObject {
         let methods = stderr[range].split(separator: ",").map(String.init)
         guard methods.contains("password") || methods.contains("keyboard-interactive") else { return nil }
         return "Password and keyboard-interactive authentication are disabled for this host. If you trust it and it needs a password or 2FA, turn on \"Allow password authentication for this host\" in the connection editor."
+    }
+
+    /// Extra guidance appended to ssh errors when the host key is unknown or has changed.
+    static func hostKeyFailureHint(stderr: String, exitCode: Int32, host: String) -> String? {
+        guard exitCode == 255, stderr.contains("Host key verification failed.") else { return nil }
+        if stderr.contains("REMOTE HOST IDENTIFICATION HAS CHANGED") {
+            return "The host key for this host does not match the one saved in known_hosts. The server may have been reinstalled, or someone may be intercepting the connection. Check with the server's owner before removing the old key; the ssh message above names the file and line."
+        }
+        if stderr.contains("REVOKED HOST KEY") {
+            return "This host's key is marked as revoked in known_hosts, so RemoteDiff will not connect. Check with the server's owner."
+        }
+        // StrictHostKeyChecking=ask overrides an accept-new / yes / no setting in ~/.ssh/config,
+        // so Terminal always shows the fingerprint and asks.
+        let plain = host.range(of: #"^[A-Za-z0-9][A-Za-z0-9._@-]*$"#, options: .regularExpression) != nil
+        let command = "ssh -o StrictHostKeyChecking=ask " + (plain ? host : "-- " + shellQuote(host))
+        return "RemoteDiff only connects to hosts whose key is already in known_hosts. To add this host's key, run the command below in Terminal, check that the fingerprint matches the server's, answer yes, then try again:\n" + "    " + command
     }
 
     /// Environment for ssh processes: SSH_ASKPASS so passphrase (and, if enabled, password)
@@ -271,6 +292,9 @@ class SSHService: ObservableObject {
                 } else {
                     var msg = stderr.isEmpty ? "SSH exited with code \(process.terminationStatus)" : stderr
                     if let hint = authFailureHint(stderr: stderr, exitCode: process.terminationStatus, host: host, allowedHosts: allowed) {
+                        msg += "\n" + hint
+                    }
+                    if let hint = hostKeyFailureHint(stderr: stderr, exitCode: process.terminationStatus, host: host) {
                         msg += "\n" + hint
                     }
                     completion(.failure(SSHError.commandFailed(code: process.terminationStatus, message: msg)))

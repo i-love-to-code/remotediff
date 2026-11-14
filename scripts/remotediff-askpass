@@ -12,6 +12,14 @@
 
 PROMPT="${1:-SSH Password:}"
 
+# Never answer host-key questions ("Are you sure you want to continue connecting",
+# "Accept updated hostkeys?"). RemoteDiff passes StrictHostKeyChecking=yes, but a
+# ProxyJump/ProxyCommand hop runs its own ssh without our options and could still ask.
+# Exiting non-zero makes ssh treat it as "no".
+case "$PROMPT" in
+    *"continue connecting"*|*"Accept updated hostkeys"*) exit 1 ;;
+esac
+
 case "${SSH_ASKPASS_PROMPT:-}" in
     confirm)
         RESULT=$(/usr/bin/osascript - "$PROMPT" 2>/dev/null <<'EOF'

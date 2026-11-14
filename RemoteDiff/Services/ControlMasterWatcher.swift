@@ -75,10 +75,9 @@ class ControlMasterWatcher: ObservableObject {
 
     // MARK: - ControlMaster
 
-    private func startMaster() {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
-        process.arguments = SSHService.authOptionArgs(host: host, allowedHosts: SSHService.passwordAuthHosts) + [
+    /// ssh argv for the ControlMaster. Host-key and auth options come first (ssh keeps the first value).
+    static func masterArguments(host: String, socketPath: String, allowedHosts: Set<String>) -> [String] {
+        SSHService.hostKeyOptionArgs + SSHService.authOptionArgs(host: host, allowedHosts: allowedHosts) + [
             "-o", "ControlMaster=yes",
             "-o", "ControlPath=\(socketPath)",
             "-o", "ControlPersist=yes",
@@ -87,6 +86,13 @@ class ControlMasterWatcher: ObservableObject {
             "-N",
             "--", host
         ]
+    }
+
+    private func startMaster() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
+        process.arguments = Self.masterArguments(host: host, socketPath: socketPath,
+                                                 allowedHosts: SSHService.passwordAuthHosts)
         process.environment = SSHService.sshEnvironment()
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
